@@ -2,6 +2,10 @@
 
 A quiet place for your Markdown files. Double-click any `.md` file in Finder to start reading.
 
+## Download
+
+[Download the latest macOS app](https://github.com/rudovjan/md-reader/releases/latest) (Apple Silicon, macOS 13+). Unzip the download and move **MD Reader.app** to Applications. Builds are not Developer ID signed or notarized.
+
 ## The essentials
 
 - **Open a file:** press ⌘O, or drag a file into the window.
@@ -51,3 +55,14 @@ swift scripts/associate.swift "$HOME/Applications/MD Reader.app" "$PWD/README.md
 The app icon is included. To regenerate it, run `swift scripts/icon.swift assets/reader.iconset/icon_512x512@2x.png`, create the 512px version using `sips`, then use `iconutil` to rebuild `assets/reader.icns`.
 
 The app uses Electron with sandboxed, isolated renderers and sanitizes rendered Markdown using DOMPurify. Local and HTTPS images are supported. This local build is not notarized and has no automatic update service.
+
+## Releases
+
+GitHub Actions builds and publishes the app ZIP and SHA-256 checksum when a version tag is pushed:
+
+```sh
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The workflow uses a standard macOS runner, which is free for this public repository, and uploads directly to GitHub Releases. Generated `dist/` files stay out of Git history.

@@ -1,0 +1,52 @@
+name: Build and release macOS app
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm test
+      - name: Build app
+        run: npm run build
+      - name: Package app
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            'dist/MD Reader-darwin-arm64/MD Reader.app' \
+            "dist/MD-Reader-${RELEASE_TAG}-macOS-arm64.zip"
+          cd dist
+          shasum -a 256 "MD-Reader-${RELEASE_TAG}-macOS-arm64.zip" > SHA256SUMS.txt
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag \
+              --title "MD Reader ${RELEASE_TAG}" \
+              --notes "Markdown reader and editor with side-by-side live preview. Download the macOS Apple Silicon ZIP, unzip it, and move MD Reader.app to Applications. Requires macOS 13 or newer. This build is not Developer ID signed or notarized."
+          fi
+          gh release upload "$RELEASE_TAG" \
+            "dist/MD-Reader-${RELEASE_TAG}-macOS-arm64.zip" \
+            dist/SHA256SUMS.txt --clobber
