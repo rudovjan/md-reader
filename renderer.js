@@ -50,6 +50,7 @@ function renderDocument(data) {
     $('article').replaceChildren();
     const pre = document.createElement('pre');
     const code = document.createElement('code');
+    let jsonPreview = null;
     if (!data.source.trim()) {
       const empty = document.createElement('div');
       empty.className = 'json-empty';
@@ -58,7 +59,7 @@ function renderDocument(data) {
       hint.textContent = 'Click Edit to start writing. Use {} for an object or [] for a list.';
       empty.append(title, hint); $('article').append(empty);
       pre.hidden = true;
-    } else try { const preview = previewJSON(data.source); code.textContent = preview.text; jsonRecords = preview.records; }
+    } else try { const preview = previewJSON(data.source); code.textContent = preview.text; jsonRecords = preview.records; jsonPreview = preview; }
     catch (error) {
       const warning = document.createElement('p');
       warning.className = 'json-error'; warning.setAttribute('role', 'alert');
@@ -66,6 +67,7 @@ function renderDocument(data) {
       $('article').append(warning); code.textContent = data.source;
     }
     pre.append(code); $('article').append(pre);
+    if (jsonPreview) mountJSONTree($('article'), data.source, jsonPreview, pre, data.file);
   } else $('article').innerHTML = DOMPurify.sanitize(marked.parse(data.source, { gfm: true }), { FORBID_TAGS: ['style', 'form', 'input', 'iframe', 'object', 'embed'], FORBID_ATTR: ['style', 'srcset'] });
   $('article').querySelectorAll('img').forEach(img => { const url = new URL(img.getAttribute('src'), base); if (['file:', 'https:', 'data:'].includes(url.protocol)) img.src = url.href; else img.removeAttribute('src'); });
   $('#outline').replaceChildren();

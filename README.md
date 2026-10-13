@@ -19,7 +19,7 @@ Your document refreshes automatically when you save changes in another editor. E
 
 ## JSON support
 
-Open `.json` files through Finder, Open, or drag-and-drop. JSON Lines (one JSON record per line) is detected automatically, including in `.json` files. Read a formatted preview, or edit the source beside a live preview. Invalid JSON shows a syntax error without losing your text. Saving preserves the exact source, including large numbers.
+Open `.json` files through Finder, Open, or drag-and-drop. JSON Lines (one JSON record per line) is detected automatically, including in `.json` files. Browse a collapsible tree with syntax colors, item counts, Expand all / Collapse all, a text view, and copy controls for values and JSON paths. Read a formatted preview, or edit the source beside a live preview. Invalid JSON shows a syntax error without losing your text. Saving preserves the exact source, including large numbers.
 
 ## Markdown, comfortably rendered
 

@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('reader', {
+  copy: value => ipcRenderer.invoke('copy-json', value),
   draft: source => ipcRenderer.send('draft', source),
   save: () => ipcRenderer.invoke('save'),
   onSaved: callback => ipcRenderer.on('saved', (_event, source) => callback(source)),

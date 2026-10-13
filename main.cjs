@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, clipboard } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -87,6 +87,7 @@ else {
       { label: 'View', submenu: [{ label: 'Edit Side by Side / Read', accelerator: 'CmdOrCtrl+E', click: () => BrowserWindow.getFocusedWindow()?.webContents.send('toggle-edit') }, { type: 'separator' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
       { role: 'windowMenu' }
     ]));
+    ipcMain.handle('copy-json', (_event, value) => { if (typeof value === 'string') clipboard.writeText(value); });
     ipcMain.handle('open', chooseFile);
     ipcMain.on('draft', (event, source) => {
       const win = BrowserWindow.fromWebContents(event.sender);
@@ -172,6 +173,18 @@ else {
         if (linesView.error || !linesView.status.includes('2 records') || !linesView.text.includes('9007199254740993')) throw new Error('JSON Lines preview failed');
         await jsonWin.webContents.executeJavaScript(`window.reader.save()`);
         if (fs.readFileSync(jsonPath, 'utf8') !== jsonLines) throw new Error('JSON Lines save changed source');
+        const treeSource = '{"profile":{"name":"Example","active":true},"items":[{"id":9007199254740993},null]}';
+        await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = ${JSON.stringify(treeSource)}; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+        const control = async label => jsonWin.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.json-toolbar button')).find(b => b.textContent === ${JSON.stringify(label)}).click()`);
+        await control('Expand all');
+        if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-tree details:not([open])')`)) throw new Error('Expand all failed');
+        await control('Collapse all');
+        if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-tree details[open]')`)) throw new Error('Collapse all failed');
+        await control('Text view');
+        if (!await jsonWin.webContents.executeJavaScript(`document.querySelector('.json-tree').hidden && !document.querySelector('article pre').hidden`)) throw new Error('Text view failed');
+        await control('Tree view'); await control('Expand all');
+        await fs.promises.writeFile('/tmp/md-reader-tree.png', (await jsonWin.webContents.capturePage()).toPNG());
+        console.log('TREE SMOKE PASS: expand, collapse, tree/text modes');
         console.log('JSON LINES SMOKE PASS: detection, preview, exact source save');
         console.log('EMPTY JSON SMOKE PASS: empty, whitespace, source preserved, recovery');
         console.log('JSON SMOKE PASS: safe preview, precision, editing, validation, saving');
