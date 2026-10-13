@@ -49,7 +49,15 @@ function renderDocument(data) {
     $('article').replaceChildren();
     const pre = document.createElement('pre');
     const code = document.createElement('code');
-    try { code.textContent = formatJSON(data.source); }
+    if (!data.source.trim()) {
+      const empty = document.createElement('div');
+      empty.className = 'json-empty';
+      const title = document.createElement('h2'); title.textContent = 'This JSON file is empty';
+      const hint = document.createElement('p');
+      hint.textContent = 'Click Edit to start writing. Use {} for an object or [] for a list.';
+      empty.append(title, hint); $('article').append(empty);
+      pre.hidden = true;
+    } else try { code.textContent = formatJSON(data.source); }
     catch (error) {
       const warning = document.createElement('p');
       warning.className = 'json-error'; warning.setAttribute('role', 'alert');
@@ -68,7 +76,7 @@ function renderDocument(data) {
   });
   if (json) {
     const note = document.createElement('p'); note.className = 'muted';
-    note.textContent = $('article .json-error') ? 'Fix the syntax in Edit mode. Your source is preserved.' : 'JSON document · formatted preview';
+    note.textContent = !data.source.trim() ? 'Empty JSON file · ready to edit' : $('article .json-error') ? 'Fix the syntax in Edit mode. Your source is preserved.' : 'JSON document · formatted preview';
     $('#outline').append(note);
   }
   $('#filename').textContent = data.name; $('#filename').title = data.file;

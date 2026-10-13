@@ -159,6 +159,14 @@ else {
         await jsonWin.webContents.executeJavaScript(`window.reader.save()`);
         if (fs.readFileSync(jsonPath, 'utf8') !== '{"saved":true}') throw new Error('JSON save failed');
         if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-error')`)) throw new Error('JSON error did not clear');
+        for (const emptySource of ['', '  \n\t']) {
+          await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = ${JSON.stringify(emptySource)}; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+          const emptyState = await jsonWin.webContents.executeJavaScript(`({empty: !!document.querySelector('.json-empty'), error: !!document.querySelector('.json-error'), source: document.querySelector('#editor').value})`);
+          if (!emptyState.empty || emptyState.error || emptyState.source !== emptySource) throw new Error('Empty JSON handling failed');
+        }
+        await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = '[]'; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+        if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-empty') || document.querySelector('article code').textContent !== '[]'`)) throw new Error('Empty JSON did not recover');
+        console.log('EMPTY JSON SMOKE PASS: empty, whitespace, source preserved, recovery');
         console.log('JSON SMOKE PASS: safe preview, precision, editing, validation, saving');
         console.log('SMOKE PASS: side-by-side layout, live preview, render, edit, save, preview, external-change protection, conflict cancel, close cancel', JSON.stringify(result)); app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
