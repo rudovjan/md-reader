@@ -45,7 +45,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --verify-tag \
               --title "MD Reader ${RELEASE_TAG}" \
-              --notes "Markdown reader and editor with side-by-side live preview. Download the macOS Apple Silicon ZIP, unzip it, and move MD Reader.app to Applications. Requires macOS 13 or newer. This build is not Developer ID signed or notarized."
+              --notes "Markdown and JSON reader and editor with side-by-side live preview. Download the macOS Apple Silicon ZIP, unzip it, and move MD Reader.app to Applications. Requires macOS 13 or newer. This build is not Developer ID signed or notarized."
           fi
           gh release upload "$RELEASE_TAG" \
             "dist/MD-Reader-${RELEASE_TAG}-macOS-arm64.zip" \

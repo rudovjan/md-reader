@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron')
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { isMarkdown } = require('./reader.cjs');
+const { isSupported } = require('./reader.cjs');
 const documents = new Map();
 const pending = [];
 const smoke = process.argv.includes('--smoke-test');
@@ -42,7 +42,7 @@ function saveDocument(win) {
   }
 }
 function openFile(file) {
-  if (!isMarkdown(file)) return;
+  if (!isSupported(file)) return;
   file = path.resolve(file);
   const existing = [...documents].find(([, doc]) => doc.file === file);
   if (existing) { existing[0].show(); existing[0].focus(); return; }
@@ -56,7 +56,7 @@ function openFile(file) {
   if (!win.webContents.isLoading()) sendDocument(win);
 }
 async function chooseFile() {
-  const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd'] }] });
+  const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: [{ name: 'Markdown and JSON', extensions: ['md', 'markdown', 'mdown', 'mkd', 'json'] }] });
   if (!result.canceled) result.filePaths.forEach(openFile);
 }
 function createWindow() {
@@ -78,7 +78,7 @@ function createWindow() {
 app.on('open-file', (event, file) => { event.preventDefault(); app.isReady() ? openFile(file) : pending.push(file); });
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  app.on('second-instance', (_event, argv) => { const files = argv.filter(isMarkdown); files.forEach(openFile); if (!files.length) [...documents.keys()][0]?.focus(); });
+  app.on('second-instance', (_event, argv) => { const files = argv.filter(isSupported); files.forEach(openFile); if (!files.length) [...documents.keys()][0]?.focus(); });
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       { label: 'MD Reader', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { type: 'separator' }, { role: 'quit' }] },
@@ -102,10 +102,10 @@ else {
       const file = documents.get(win)?.file;
       const url = new URL(href, file ? pathToFileURL(file).href : 'https://invalid.local/');
       if (['https:', 'http:', 'mailto:'].includes(url.protocol)) await shell.openExternal(url.href);
-      else if (url.protocol === 'file:' && isMarkdown(url.pathname)) openFile(require('node:url').fileURLToPath(url));
+      else if (url.protocol === 'file:' && isSupported(url.pathname)) openFile(require('node:url').fileURLToPath(url));
     });
     ipcMain.on('find-text', (event, text) => { if (text) event.sender.findInPage(text); else event.sender.stopFindInPage('clearSelection'); });
-    const files = [...pending, ...process.argv.slice(1).filter(isMarkdown)];
+    const files = [...pending, ...process.argv.slice(1).filter(isSupported)];
     if (files.length) files.forEach(openFile); else createWindow();
     app.on('activate', () => { if (!documents.size) createWindow(); });
     if (smoke) {
@@ -144,6 +144,22 @@ else {
         if (win.isDestroyed()) throw new Error('Close cancellation failed');
         dialog.showMessageBoxSync = realDialog;
         fs.writeFileSync(doc.file, original);
+        const jsonPath = path.join(app.getPath('temp'), 'md-reader-json-smoke.json');
+        const jsonSource = '{"big":9007199254740993,"html":"<img src=x onerror=alert(1)>"}';
+        fs.writeFileSync(jsonPath, jsonSource);
+        openFile(jsonPath);
+        const jsonWin = [...documents.keys()].find(w => documents.get(w).file === jsonPath);
+        await new Promise(resolve => jsonWin.webContents.once('did-finish-load', resolve));
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const jsonView = await jsonWin.webContents.executeJavaScript(`({text: document.querySelector('article code').textContent, image: !!document.querySelector('article img')})`);
+        if (!jsonView.text.includes('9007199254740993') || jsonView.image) throw new Error('JSON rendering failed');
+        await jsonWin.webContents.executeJavaScript(`document.querySelector('#edit').click(); document.querySelector('#editor').value = '{invalid'; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+        if (!await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-error')`)) throw new Error('Missing JSON syntax error');
+        await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = '{"saved":true}'; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+        await jsonWin.webContents.executeJavaScript(`window.reader.save()`);
+        if (fs.readFileSync(jsonPath, 'utf8') !== '{"saved":true}') throw new Error('JSON save failed');
+        if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-error')`)) throw new Error('JSON error did not clear');
+        console.log('JSON SMOKE PASS: safe preview, precision, editing, validation, saving');
         console.log('SMOKE PASS: side-by-side layout, live preview, render, edit, save, preview, external-change protection, conflict cancel, close cancel', JSON.stringify(result)); app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     }

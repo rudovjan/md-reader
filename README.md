@@ -1,6 +1,6 @@
 # Welcome to MD Reader
 
-A quiet place for your Markdown files. Double-click any `.md` file in Finder to start reading.
+A quiet place for your Markdown and JSON files. Double-click any `.md` file in Finder to start reading.
 
 ## Download
 
@@ -16,6 +16,10 @@ A quiet place for your Markdown files. Double-click any `.md` file in Finder to 
 - **Jump between sections:** use the outline on the left.
 
 Your document refreshes automatically when you save changes in another editor. Each document opens in its own window. Unsaved edits are protected when closing a window. If the file changes in another editor, saving asks before overwriting those changes.
+
+## JSON support
+
+Open `.json` files through Finder, Open, or drag-and-drop. Read a formatted preview, or edit the source beside a live preview. Invalid JSON shows a syntax error without losing your text. Saving preserves the exact source, including large numbers.
 
 ## Markdown, comfortably rendered
 

@@ -4,8 +4,8 @@ import UniformTypeIdentifiers
 import CoreServices
 let appURL = URL(fileURLWithPath: CommandLine.arguments[1])
 LSRegisterURL(appURL as CFURL, true)
-var identifiers = Set(["net.daringfireball.markdown"])
-for ext in ["md", "markdown", "mdown", "mkd"] {
+var identifiers = Set(["net.daringfireball.markdown", "public.json"])
+for ext in ["md", "markdown", "mdown", "mkd", "json"] {
     if let type = UTType(filenameExtension: ext) { identifiers.insert(type.identifier) }
 }
 var remaining = identifiers.count

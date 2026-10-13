@@ -41,7 +41,23 @@ $('#theme').onclick = () => {
 function renderDocument(data) {
   const scroll = data.file === currentFile ? $('#scroll').scrollTop : 0;
   currentFile = data.file; base = data.base;
-  $('article').innerHTML = DOMPurify.sanitize(marked.parse(data.source, { gfm: true }), { FORBID_TAGS: ['style', 'form', 'input', 'iframe', 'object', 'embed'], FORBID_ATTR: ['style', 'srcset'] });
+  const json = /\.json$/i.test(data.file);
+  $('#source-pane .pane-label').textContent = json ? 'JSON' : 'MARKDOWN';
+  $('#editor').setAttribute('aria-label', json ? 'JSON source' : 'Markdown source');
+  $('article').classList.toggle('json-document', json);
+  if (json) {
+    $('article').replaceChildren();
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    try { code.textContent = formatJSON(data.source); }
+    catch (error) {
+      const warning = document.createElement('p');
+      warning.className = 'json-error'; warning.setAttribute('role', 'alert');
+      warning.textContent = `Invalid JSON: ${error.message}`;
+      $('article').append(warning); code.textContent = data.source;
+    }
+    pre.append(code); $('article').append(pre);
+  } else $('article').innerHTML = DOMPurify.sanitize(marked.parse(data.source, { gfm: true }), { FORBID_TAGS: ['style', 'form', 'input', 'iframe', 'object', 'embed'], FORBID_ATTR: ['style', 'srcset'] });
   $('article').querySelectorAll('img').forEach(img => { const url = new URL(img.getAttribute('src'), base); if (['file:', 'https:', 'data:'].includes(url.protocol)) img.src = url.href; else img.removeAttribute('src'); });
   $('#outline').replaceChildren();
   $('article').querySelectorAll('h1,h2,h3').forEach((heading, index) => {
@@ -50,9 +66,14 @@ function renderDocument(data) {
     anchor.onclick = event => { event.preventDefault(); heading.scrollIntoView({ behavior: 'smooth' }); };
     $('#outline').append(anchor);
   });
+  if (json) {
+    const note = document.createElement('p'); note.className = 'muted';
+    note.textContent = $('article .json-error') ? 'Fix the syntax in Edit mode. Your source is preserved.' : 'JSON document · formatted preview';
+    $('#outline').append(note);
+  }
   $('#filename').textContent = data.name; $('#filename').title = data.file;
   const words = data.source.trim().split(/\s+/).filter(Boolean).length;
-  $('#status').textContent = `${words.toLocaleString()} words`;
+  $('#status').textContent = json ? `${data.source.split('\n').length.toLocaleString()} lines · JSON` : `${words.toLocaleString()} words`;
   $('#reading').textContent = `${Math.max(1, Math.ceil(words / 220))} MIN READ · AUTO-REFRESH ON`;
   $('#empty').hidden = true; $('article').hidden = false; $('#error').hidden = true; $('#scroll').scrollTop = scroll;
 }
