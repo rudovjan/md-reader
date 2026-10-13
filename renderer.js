@@ -45,6 +45,7 @@ function renderDocument(data) {
   $('#source-pane .pane-label').textContent = json ? 'JSON' : 'MARKDOWN';
   $('#editor').setAttribute('aria-label', json ? 'JSON source' : 'Markdown source');
   $('article').classList.toggle('json-document', json);
+  let jsonRecords = null;
   if (json) {
     $('article').replaceChildren();
     const pre = document.createElement('pre');
@@ -57,7 +58,7 @@ function renderDocument(data) {
       hint.textContent = 'Click Edit to start writing. Use {} for an object or [] for a list.';
       empty.append(title, hint); $('article').append(empty);
       pre.hidden = true;
-    } else try { code.textContent = formatJSON(data.source); }
+    } else try { const preview = previewJSON(data.source); code.textContent = preview.text; jsonRecords = preview.records; }
     catch (error) {
       const warning = document.createElement('p');
       warning.className = 'json-error'; warning.setAttribute('role', 'alert');
@@ -76,12 +77,12 @@ function renderDocument(data) {
   });
   if (json) {
     const note = document.createElement('p'); note.className = 'muted';
-    note.textContent = !data.source.trim() ? 'Empty JSON file · ready to edit' : $('article .json-error') ? 'Fix the syntax in Edit mode. Your source is preserved.' : 'JSON document · formatted preview';
+    note.textContent = !data.source.trim() ? 'Empty JSON file · ready to edit' : $('article .json-error') ? 'Fix the syntax in Edit mode. Your source is preserved.' : jsonRecords ? `JSON Lines · ${jsonRecords} records` : 'JSON document · formatted preview';
     $('#outline').append(note);
   }
   $('#filename').textContent = data.name; $('#filename').title = data.file;
   const words = data.source.trim().split(/\s+/).filter(Boolean).length;
-  $('#status').textContent = json ? `${data.source.split('\n').length.toLocaleString()} lines · JSON` : `${words.toLocaleString()} words`;
+  $('#status').textContent = json ? (jsonRecords ? `${jsonRecords} records · JSON Lines` : `${data.source.split('\n').length.toLocaleString()} lines · JSON`) : `${words.toLocaleString()} words`;
   $('#reading').textContent = `${Math.max(1, Math.ceil(words / 220))} MIN READ · AUTO-REFRESH ON`;
   $('#empty').hidden = true; $('article').hidden = false; $('#error').hidden = true; $('#scroll').scrollTop = scroll;
 }

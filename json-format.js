@@ -21,6 +21,18 @@
     });
     return result;
   }
-  if (typeof module !== 'undefined') module.exports = { formatJSON };
-  else root.formatJSON = formatJSON;
+  function previewJSON(source) {
+    try { return { text: formatJSON(source), records: null }; }
+    catch (error) {
+      const lines = source.split(/\r?\n/).filter(line => line.trim());
+      if (lines.length < 2) throw error;
+      const formatted = lines.map((line, index) => {
+        try { return formatJSON(line); }
+        catch (lineError) { throw new SyntaxError(`JSON Lines record ${index + 1}: ${lineError.message}`); }
+      });
+      return { text: formatted.join('\n\n'), records: formatted.length };
+    }
+  }
+  if (typeof module !== 'undefined') module.exports = { formatJSON, previewJSON };
+  else { root.formatJSON = formatJSON; root.previewJSON = previewJSON; }
 })(globalThis);

@@ -166,6 +166,13 @@ else {
         }
         await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = '[]'; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
         if (await jsonWin.webContents.executeJavaScript(`!!document.querySelector('.json-empty') || document.querySelector('article code').textContent !== '[]'`)) throw new Error('Empty JSON did not recover');
+        const jsonLines = '{"id":9007199254740993}\n{"id":2}';
+        await jsonWin.webContents.executeJavaScript(`document.querySelector('#editor').value = ${JSON.stringify(jsonLines)}; document.querySelector('#editor').dispatchEvent(new Event('input'));`);
+        const linesView = await jsonWin.webContents.executeJavaScript(`({error: !!document.querySelector('.json-error'), status: document.querySelector('#status').textContent, text: document.querySelector('article code').textContent})`);
+        if (linesView.error || !linesView.status.includes('2 records') || !linesView.text.includes('9007199254740993')) throw new Error('JSON Lines preview failed');
+        await jsonWin.webContents.executeJavaScript(`window.reader.save()`);
+        if (fs.readFileSync(jsonPath, 'utf8') !== jsonLines) throw new Error('JSON Lines save changed source');
+        console.log('JSON LINES SMOKE PASS: detection, preview, exact source save');
         console.log('EMPTY JSON SMOKE PASS: empty, whitespace, source preserved, recovery');
         console.log('JSON SMOKE PASS: safe preview, precision, editing, validation, saving');
         console.log('SMOKE PASS: side-by-side layout, live preview, render, edit, save, preview, external-change protection, conflict cancel, close cancel', JSON.stringify(result)); app.exit(0);

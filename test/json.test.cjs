@@ -16,3 +16,11 @@ test('handles primitives and rejects invalid JSON', () => {
   for (const value of ['null','true','123','"hello"','[]','{}']) assert.equal(formatJSON(value), value);
   for (const value of ['', '{"a":}', '[1,]', '{oops}']) assert.throws(() => formatJSON(value));
 });
+
+const { previewJSON } = require('../json-format.js');
+test('detects JSON Lines and preserves number tokens', () => {
+  const result = previewJSON('{"id":9007199254740993}\r\n\r\n{"id":2}\r\n');
+  assert.equal(result.records, 2); assert.ok(result.text.includes('9007199254740993'));
+  assert.equal(previewJSON('{\n"id": 1\n}').records, null);
+  assert.throws(() => previewJSON('{"id":1}\n{"id":}'), /record 2/);
+});
